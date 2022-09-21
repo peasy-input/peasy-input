@@ -4,12 +4,12 @@ This is the repository for Peasy Input, a small-ish and relatively easy to use i
 
 ## Introduction
 
-Peasy Input provides uncomplicated input handling that maps keys to actions and let's the application be action based rather than key based. It supports both a callback usage, including repeating and non-repeating actions, as well as a query usage.
+Peasy Input provides input handling that maps keys to actions and let's the application be action based rather than key based. It supports both a callback usage, including repeating and non-repeating actions, as well as a query usage.
 
 ## First look
 
 ```ts
-import { Keyboard } from './../src/keyboard';
+import { Keyboard } from 'peasy-input';
 
 Keyboard.initialize(10); // Repeats per second
 
@@ -28,27 +28,26 @@ const subscription = Keyboard.subscribe(
   },
   (action: string, doing: boolean) => {
     if (doing) {
-      model.actions.push(action);
       switch (action) {
         case 'interact':
-          if (model.modal == null) {
-            openModal(model);
+          if (modal == null) {
+            openModal();
           } else {
-            closeModal(model);
+            closeModal();
           }
           break;
         case 'close':
-          if (model.modal != null) {
-            closeModal(model);
+          if (modal != null) {
+            closeModal();
           }
           break;
       }
-      moveActions(model, action);
+      moveActions(action);
     }
   },
   'interval'
 );
-requestAnimationFrame(input);
+requestAnimationFrame(update);
 
 function update(now: number) {
   const deltaTime = (now - last) / 1000;
@@ -58,10 +57,10 @@ function update(now: number) {
 }
 ```
 ```ts
-function openModal(model) {
+function openModal() {
   // Code to open modal
 
-  model.modalKeys = Keyboard.subscribe({
+  modalKeys = Keyboard.subscribe({
     ArrowLeft: { action: 'modal-left', repeat: false },
     ArrowRight: { action: 'modal-right', repeat: false },
     ArrowDown: { action: 'modal-down', repeat: false },
@@ -70,19 +69,18 @@ function openModal(model) {
   },
     (action: string, doing: boolean) => {
       if (doing) {
-        model.actions.push(action);
         if (action === 'select') {
-          closeModal(model);
+          closeModal();
         }
       }
     },
     'interval'
   );
 }
-function closeModal(model) {
+function closeModal() {
   // Code to close modal
-  model.modalKeys.dispose();
-  model.modalKeys = null;
+  modalKeys.dispose();
+  modalKeys = null;
 }
 ```
 TODO: Finish examples above
