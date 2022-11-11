@@ -39,9 +39,9 @@ const mapping = Input.map(
       }
       moveActions(action);
     }
-  });
-```
-```ts
+  }
+);
+
 function openModal() {
   // Code to open modal
 
@@ -110,10 +110,10 @@ to make `Input` available.
 
 #### Control updates
 
-Peasy Input will by default use `requestAnimationFrame` for notifications and repeats. By calling `Input.initialize` before any other `Input` method a number can be provided to set notifications and repeats per second or `false` to prevent Peasy Input from doing any notifications at all.
+Peasy Input will by default use `requestAnimationFrame` for notifications and repeats. By calling `Input.initialize` before any other `Input` method a number can be provided to set notifications and repeats per second and `false` to prevent Peasy Input from doing any notifications at all.
 
 ```ts
-Input.initialize(false);
+Input.initialize(30, false);
 
 const tick = () => {
     doSomething();
