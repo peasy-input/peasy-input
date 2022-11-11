@@ -1,6 +1,6 @@
-import { Keyboard } from './../src/keyboard';
 import { UI } from "peasy-ui";
 import 'styles.css';
+import { Input } from '../src/input';
 
 window.addEventListener('DOMContentLoaded', (event) => {
   main();
@@ -26,10 +26,10 @@ async function main(): Promise<void> {
    </div>
    `, model);
 
-  Keyboard.initialize(10); // Repeats per second
+  Input.initialize(10); // Repeats per second
 
-  // Call subscription.dispose() to remove mapping
-  const subscription = Keyboard.subscribe(
+  // Call mapping.unmap() to remove mapping
+  const mapping = Input.map(
     {
       ArrowLeft: 'walk-left',
       ArrowRight: 'walk-right',
@@ -61,25 +61,34 @@ async function main(): Promise<void> {
         }
         moveActions(model, action);
       }
-    },
-    'interval'
-  );
-  requestAnimationFrame(start);
+    });
+  Input.map({ w: 'walk-up' });
+  Input.map(['a', 's', 'd']);
+  Input.map('g', () => console.log('g:', Input.is('g')));
+  // requestAnimationFrame(start);
 }
 
-let last;
-function start(now: number) {
-  last = now;
-  requestAnimationFrame(update);
+function tick() {
+  console.log('is a', Input.is('a'), Input.is('ArrowLeft'), Input.is('walk-up'));
+  requestAnimationFrame(tick);
 }
+requestAnimationFrame(tick);
+// let last;
+// function start(now: number) {
+//   last = now;
+//   requestAnimationFrame(update);
+// }
 
-function update(now: number) {
-  const deltaTime = (now - last) / 1000;
-  last = now;
-  Keyboard.update(deltaTime);
-  UI.update();
-  requestAnimationFrame(update);
-}
+// function update(now: number) {
+//   const deltaTime = (now - last) / 1000;
+//   last = now;
+//   Input.update(deltaTime);
+//   UI.update();
+
+//   // console.log('action is walk-up', Input.is('walk-up'), 'modal-up', Input.is('modal-up'));
+
+//   requestAnimationFrame(update);
+// }
 
 function openModal(model) {
   model.modal = UI.create(model.borderElement,
@@ -87,7 +96,7 @@ function openModal(model) {
     A modal with (imagined) options
     that remaps arrow keys and space</div>`,
     {});
-  model.modalKeys = Keyboard.subscribe({
+  model.modalKeys = Input.map({
     ArrowLeft: { action: 'modal-left', repeat: false },
     ArrowRight: { action: 'modal-right', repeat: false },
     ArrowDown: { action: 'modal-down', repeat: false },
@@ -95,19 +104,17 @@ function openModal(model) {
     ' ': { action: 'select', repeat: false },
   },
     (action: string, doing: boolean) => {
+      model.actions.push(`${action}: ${doing}`);
       if (doing) {
-        model.actions.push(action);
         if (action === 'select') {
           closeModal(model);
         }
       }
-    },
-    'interval'
-  );
+    });
 }
 function closeModal(model) {
   model.modal.destroy();
-  model.modalKeys.dispose();
+  model.modalKeys.unmap();
   model.modal = null;
   model.modalKeys = null;
 }
@@ -143,3 +150,21 @@ function moveY(model, d) {
   model.y = Math.max(Math.min(model.y + d, 375), 0);
 
 }
+
+// const mapping = Input.map(
+// {
+//   ArrowLeft: 'walk-left',
+//   ArrowRight: 'walk-right',
+//   ArrowDown: 'walk-down',
+//   ArrowUp: 'walk-up',
+//   Escape: { action: 'close', repeat: false },
+//   ' ': { action: 'interact', repeat: false },
+// },
+// null,
+// 'interval'
+// );
+
+// // In rAF:
+// Input.update(deltaTime);
+// if (Input.is('walk-left') { /* True every key repeat interval */ }
+// if (Input.is('interact') { /* True only first time after a keypress, not repeating */ }

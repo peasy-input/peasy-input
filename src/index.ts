@@ -1,4 +1,8 @@
 export {
+  Input,
+} from './input';
+
+export {
   IKeyMapping,
   Keyboard,
   KeyCallback,
@@ -7,5 +11,5 @@ export {
 } from './keyboard';
 
 export {
-  KeyboardSubscription
-} from './keyboard-subscription';
+  KeyboardMapping,
+} from './keyboard-mapping';

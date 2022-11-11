@@ -1,4 +1,5 @@
-import { KeyboardSubscription } from "./keyboard-subscription";
+import { Input } from "./input";
+import { KeyboardMapping } from "./keyboard-mapping";
 
 export type KeyCallback = (key: string, pressed: boolean, deltaTime: number) => void;
 export type KeymapMode = 'add' | 'replace';
@@ -7,20 +8,17 @@ export type KeyEffectMode = 'instant' | 'interval';
 export interface IKeyMapping {
   action: string;
   repeat: boolean;
-  subscription?: KeyboardSubscription;
+  mapping?: KeyboardMapping;
 }
 // TODO: Add support for multiple keys for one action
 export class Keyboard {
-  public static rps: number;
-
   private static element: HTMLElement;
-  private static subscriptions: KeyboardSubscription[] = [];
-  private static mappings: Map<string, KeyCallback> = new Map();
-  private static pressed: Map<string, { keymap: IKeyMapping, repeat: number }> = new Map();
+  private static mappings: KeyboardMapping[] = [];
+  // private static mappings: Map<string, KeyCallback> = new Map();
+  private static pressed: Map<string, { keymap: IKeyMapping, repeat: number, done: boolean, doneIs: boolean }> = new Map();
   private static lastPressed: string[] = [];
 
-  public static initialize(rps: number, element = document.body) {
-    this.rps = rps;
+  public static initialize(element: HTMLElement) {
     this.element = element;
     this.element.addEventListener('keydown', this.keyChange);
     this.element.addEventListener('keyup', this.keyChange);
@@ -33,15 +31,15 @@ export class Keyboard {
     this.element = null;
   }
 
-  public static subscribe(mappings, callback: KeyCallback, effectMode: KeyEffectMode = 'instant', keymapMode: KeymapMode = 'add'): KeyboardSubscription {
-    const subscription = new KeyboardSubscription(mappings, callback, effectMode, keymapMode);
-    this.subscriptions.unshift(subscription);
-    return subscription;
+  public static map(mappings, callback?: KeyCallback, effectMode: KeyEffectMode = 'interval', keymapMode: KeymapMode = 'add'): KeyboardMapping {
+    const mapping = new KeyboardMapping(mappings, callback, effectMode, keymapMode);
+    this.mappings.unshift(mapping);
+    return mapping;
   }
-  public static unsubscribe(subscription: KeyboardSubscription): void {
-    this.subscriptions = this.subscriptions.filter(sub => sub !== subscription);
+  public static unmap(mapping: KeyboardMapping): void {
+    this.mappings = this.mappings.filter(m => m !== mapping);
     for (const key of this.pressed.keys()) {
-      if (this.pressed.get(key).keymap.subscription === subscription) {
+      if (this.pressed.get(key).keymap.mapping === mapping) {
         this.pressed.delete(key);
       }
     }
@@ -99,14 +97,14 @@ export class Keyboard {
       return;
     }
 
-    if (mapped.subscription.effectMode === 'instant') {
-      mapped.subscription.callback(mapped.action, eventType === 'keydown', 0);
+    if (mapped.mapping.effectMode === 'instant') {
+      mapped.mapping.callback?.(mapped.action, eventType === 'keydown', 0);
       return;
     }
 
     if (eventType === 'keydown') {
       if (!this.pressed.has(keys)) {
-        this.pressed.set(keys, { keymap: mapped, repeat: 0 });
+        this.pressed.set(keys, { keymap: mapped, repeat: 0, done: false, doneIs: false });
       }
     } else if (eventType === 'keyup') {
       this.pressed.delete(keys);
@@ -116,12 +114,15 @@ export class Keyboard {
   public static update(deltaTime: number) {
     this.pressed.forEach((mapped, key) => {
       if (mapped.repeat === 0 || (mapped.keymap.repeat && mapped.repeat <= 0)) {
-        mapped.keymap.subscription.callback(mapped.keymap.action, true, deltaTime);
-        mapped.repeat += this.rps;
+        mapped.keymap.mapping.callback?.(mapped.keymap.action, true, deltaTime);
+        mapped.repeat += Input.rps;
       } else {
         // console.log('NO REPEAT', mapped.repeat);
         if (!mapped.keymap.repeat) {
-          mapped.keymap.subscription.callback(mapped.keymap.action, false, deltaTime);
+          if (!mapped.done) {
+            // mapped.keymap.mapping.callback(mapped.keymap.action, false, deltaTime);
+            mapped.done = true;
+          }
         } else {
           mapped.repeat -= deltaTime * 1000;
         }
@@ -130,7 +131,7 @@ export class Keyboard {
     this.lastPressed.forEach(keys => {
       if (!this.pressed.has(keys)) {
         const mapped = this.mapped(keys);
-        mapped.subscription.callback(mapped.action, false, deltaTime);
+        mapped.mapping.callback?.(mapped.action, false, deltaTime);
       }
     });
     this.lastPressed = [...this.pressed.keys()];
@@ -138,12 +139,30 @@ export class Keyboard {
 
   public static mapped(keys: string): IKeyMapping | undefined {
     let mapped;
-    for (const subscription of this.subscriptions) {
-      mapped = subscription.maps(keys);
-      if (mapped != null || subscription.keymapMode === 'replace') {
+    for (const mapping of this.mappings) {
+      mapped = mapping.maps(keys);
+      if (mapped != null || mapping.keymapMode === 'replace') {
         break;
       }
     }
     return mapped;
+  }
+
+  public static is(action: string): boolean {
+    for (const pressed of this.pressed.values()) {
+      if (pressed.keymap.action !== action) {
+        continue;
+      }
+      if (pressed.repeat === 0 || (pressed.keymap.repeat && pressed.repeat <= 0)) {
+        return true;
+      } else {
+        if (!pressed.keymap.repeat && !pressed.doneIs) {
+          pressed.doneIs = true;
+          return true;
+        }
+      }
+      return false;
+    }
+    return false;
   }
 }

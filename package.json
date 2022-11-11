@@ -17,7 +17,7 @@
   },
   "license": "UNLICENSED",
   "dependencies": {
-    "peasy-ui": "latest"
+    "peasy-ui": "^0.9.18"
   },
   "devDependencies": {
     "@types/node": "^17.0.23",

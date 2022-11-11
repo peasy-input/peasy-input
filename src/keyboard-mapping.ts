@@ -1,12 +1,21 @@
 import { IKeyMapping, Keyboard, KeyCallback, KeyEffectMode, KeymapMode } from "./keyboard";
 
-export class KeyboardSubscription {
+export class KeyboardMapping {
   public constructor(
-    public mappings: Record<string, IKeyMapping>,
-    public callback: KeyCallback,
+    public mappings: string | string[] | Record<string, IKeyMapping>,
+    public callback: KeyCallback | undefined,
     public effectMode: KeyEffectMode,
     public keymapMode: KeymapMode,
   ) {
+    if (typeof this.mappings === 'string') {
+      this.mappings = [this.mappings];
+    }
+    if (Array.isArray(this.mappings)) {
+      this.mappings = [...this.mappings].reduce((mappings, value) => {
+        mappings[value] = value;
+        return mappings;
+      }, {});
+    }
     for (const key in this.mappings) {
       const action = this.mappings[key];
       if (typeof action === 'string') {
@@ -15,7 +24,7 @@ export class KeyboardSubscription {
           repeat: true,
         };
       }
-      this.mappings[key].subscription = this;
+      this.mappings[key].mapping = this;
     }
   }
 
@@ -23,8 +32,8 @@ export class KeyboardSubscription {
     return this.mappings[keys];
   }
 
-  public dispose(): void {
-    Keyboard.unsubscribe(this);
+  public unmap(): void {
+    Keyboard.unmap(this);
   }
 
   // public addMapping(keys: string | string[], callback: KeyCallback) {
